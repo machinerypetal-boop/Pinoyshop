@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Vault - FIFO Code Manager</title>
+
+<style>
+:root{
+  --bg:#0f1117;
+  --card:#181c25;
+  --card2:#202633;
+  --text:#f5f7fb;
+  --muted:#9da7b8;
+  --accent:#6c8cff;
+  --green:#31d17c;
+  --red:#ff5d6c;
+  --border:#2b3342;
+  --shadow:0 14px 35px rgba(0,0,0,.28);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:linear-gradient(135deg,#0c0f14,#151923 55%,#0d1016);
+  color:var(--text);
+  min-height:100vh;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:22px 16px 50px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:22px;
+}
+
+h1{
+  margin:0;
+  font-size:26px;
+  letter-spacing:-.5px;
+}
+
+.subtitle{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:4px;
+}
+
+button{
+  border:0;
+  border-radius:11px;
+  padding:11px 15px;
+  font-weight:700;
+  cursor:pointer;
+  color:white;
+  background:var(--accent);
+  transition:.15s;
+  font-size:14px;
+}
+
+button:hover{
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+}
+
+button:active{
+  transform:translateY(0);
+}
+
+.add-btn{
+  white-space:nowrap;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.stat{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:15px;
+  box-shadow:var(--shadow);
+}
+
+.stat .num{
+  font-size:25px;
+  font-weight:800;
+}
+
+.stat .label{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:3px;
+}
+
+.section{
+  margin-top:25px;
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.section-title h2{
+  font-size:17px;
+  margin:0;
+}
+
+.count{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.code-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:15px;
+  box-shadow:var(--shadow);
+  position:relative;
+}
+
+.code-main{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.code-key{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:18px;
+  font-weight:800;
+  word-break:break-all;
+  cursor:pointer;
+  color:#fff;
+}
+
+.hint{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:5px;
+}
+
+.meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:12px;
+}
+
+.meta span{
+  font-size:11px;
+  color:#c8ceda;
+  background:var(--card2);
+  border:1px solid var(--border);
+  padding:5px 8px;
+  border-radius:8px;
+}
+
+.status{
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+
+.active{
+  color:var(--green) !important;
+}
+
+.expired{
+  color:var(--red) !important;
+}
+
+.menu{
+  position:absolute;
+  right:12px;
+  top:45px;
+  z-index:20;
+  display:none;
+  min-width:135px;
+  background:#242a36;
+  border:1px solid #3a4354;
+  border-radius:12px;
+  padding:6px;
+  box-shadow:0 16px 35px rgba(0,0,0,.45);
+}
+
+.menu.show{
+  display:block;
+}
+
+.menu button{
+  display:block;
+  width:100%;
+  text-align:left;
+  background:transparent;
+  padding:10px 9px;
+}
+
+.menu button:hover{
+  background:#303746;
+}
+
+.menu .danger{
+  color:#ff8792;
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  border:1px dashed var(--border);
+  border-radius:15px;
+  padding:25px 15px;
+  background:rgba(255,255,255,.015);
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.62);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:100;
+}
+
+.modal-backdrop.show{
+  display:flex;
+}
+
+.modal{
+  width:min(460px,100%);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 25px 70px rgba(0,0,0,.5);
+}
+
+.modal h3{
+  margin:0 0 16px;
+  font-size:19px;
+}
+
+label{
+  display:block;
+  color:#cdd3de;
+  font-size:12px;
+  font-weight:700;
+  margin:12px 0 7px;
+}
+
+input{
+  width:100%;
+  padding:13px 12px;
+  border-radius:11px;
+  border:1px solid var(--border);
+  background:#0f131b;
+  color:white;
+  outline:none;
+  font-size:15px;
+}
+
+input:focus{
+  border-color:var(--accent);
+}
+
+.modal-actions{
+  display:flex;
+  gap:9px;
+  justify-content:flex-end;
+  margin-top:18px;
+}
+
+.cancel{
+  background:#303746;
+}
+
+.search-row{
+  display:flex;
+  gap:9px;
+  margin:18px 0 3px;
+}
+
+.search-row input{
+  flex:1;
+}
+
+.small-btn{
+  background:#303746;
+}
+
+.footer{
+  text-align:center;
+  color:#687285;
+  font-size:11px;
+  margin-top:28px;
+}
+
+@media(max-width:560px){
+
+  header{
+    align-items:flex-start;
+  }
+
+  .add-btn{
+    padding:10px 12px;
+  }
+
+  h1{
+    font-size:22px;
+  }
+
+  .code-key{
+    font-size:16px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+
+    <div>
+      <h1>🔐 Code Vault</h1>
+      <div class="subtitle">
+        FIFO Code Manager • Auto-save enabled
+      </div>
+    </div>
+
+    <button class="add-btn" id="openAdd">
+      ＋ Add Code
+    </button>
+
+  </header>
+
+
+  <!-- STATISTICS -->
+
+  <div class="stats">
+
+    <div class="stat">
+      <div class="num" id="activeCount">0</div>
+      <div class="label">ACTIVE CODES</div>
+    </div>
+
+    <div class="stat">
+      <div class="num" id="usedCount">0</div>
+      <div class="label">USED / EXPIRED</div>
+    </div>
+
+  </div>
+
+
+  <!-- SEARCH -->
+
+  <div class="search-row">
+
+    <input
+      id="search"
+      type="search"
+      placeholder="Search code key..."
+    >
+
+    <button
+      class="small-btn"
+      id="clearSearch"
+    >
+      Clear
+    </button>
+
+  </div>
+
+
+  <!-- ACTIVE CODES -->
+
+  <section class="section">
+
+    <div class="section-title">
+
+      <h2>🟢 Active Codes</h2>
+
+      <span
+        class="count"
+        id="activeLabel"
+      >
+        0 codes
+      </span>
+
+    </div>
+
+    <div
+      class="list"
+      id="activeList"
+    ></div>
+
+  </section>
+
+
+  <!-- USED CODES -->
+
+  <section class="section">
+
+    <div class="section-title">
+
+      <h2>🔴 Used / Expired</h2>
+
+      <span
+        class="count"
+        id="usedLabel"
+      >
+        0 codes
+      </span>
+
+    </div>
+
+    <div
+      class="list"
+      id="usedList"
+    ></div>
+
+  </section>
+
+
+  <div class="footer">
+    Your data is stored locally in this browser.
+  </div>
+
+</div>
+
+
+
+<!-- ADD CODE MODAL -->
+
+<div
+  class="modal-backdrop"
+  id="modalBackdrop"
+>
+
+  <div class="modal">
+
+    <h3>
+      ＋ Add Code
+    </h3>
+
+    <label for="codeInput">
+      Code Key
+    </label>
+
+    <input
+      id="codeInput"
+      type="text"
+      placeholder="e.g. 123123"
+      autocomplete="off"
+    >
+
+    <label for="buyDate">
+      Date Purchased
+    </label>
+
+    <input
+      id="buyDate"
+      type="date"
+    >
+
+    <div class="modal-actions">
+
+      <button
+        class="cancel"
+        id="cancelAdd"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveCode"
+      >
+        Add Code
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<script>
+
+(() => {
+
+  const STORAGE_KEY = "codeVaultFIFO_v1";
+
+  let codes = loadCodes();
+
+  let openMenuId = null;
+
+
+  const $ = id =>
+    document.getElementById(id);
+
+
+
+  /*
+   * LOAD DATA
+   */
+
+  function loadCodes(){
+
+    try{
+
+      const raw =
+        localStorage.getItem(STORAGE_KEY);
+
+      const data =
+        raw ? JSON.parse(raw) : [];
+
+      return Array.isArray(data)
+        ? data
+        : [];
+
+    }catch(e){
+
+      return [];
+
+    }
+
+  }
+
+
+
+  /*
+   * SAVE DATA
+   */
+
+  function save(){
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(codes)
+    );
+
+  }
+
+
+
+  /*
+   * CURRENT DATE
+   */
+
+  function localDateString(
+    date = new Date()
+  ){
+
+    const y =
+      date.getFullYear();
+
+    const m =
+      String(
+        date.getMonth() + 1
+      ).padStart(2,"0");
+
+    const d =
+      String(
+        date.getDate()
+      ).padStart(2,"0");
+
+    return `${y}-${m}-${d}`;
+
+  }
+
+
+
+  /*
+   * DISPLAY DATE
+   */
+
+  function displayDate(value){
+
+    if(!value)
+      return "—";
+
+    const d =
+      new Date(
+        value + "T00:00:00"
+      );
+
+    return d.toLocaleDateString(
+      undefined,
+      {
+        month:"short",
+        day:"numeric",
+        year:"numeric"
+      }
+    );
+
+  }
+
+
+
+  /*
+   * SECURITY / HTML ESCAPE
+   */
+
+  function escapeHTML(value){
+
+    return String(value)
+      .replace(
+        /[&<>"']/g,
+        c => ({
+          "&":"&amp;",
+          "<":"&lt;",
+          ">":"&gt;",
+          '"':"&quot;",
+          "'":"&#039;"
+        }[c])
+      );
+
+  }
+
+
+
+  /*
+   * RENDER EVERYTHING
+   */
+
+  function render(){
+
+    const q =
+      $("search")
+        .value
+        .trim()
+        .toLowerCase();
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Active codes are always sorted
+     * using their original FIFO order.
+     */
+
+    const active =
+      codes
+        .filter(
+          c =>
+            c.status === "active" &&
+            c.key.toLowerCase().includes(q)
+        )
+        .sort(
+          (a,b) =>
+            Number(a.order) -
+            Number(b.order)
+        );
+
+
+    /*
+     * Used codes stay in the order
+     * they were used.
+     */
+
+    const used =
+      codes
+        .filter(
+          c =>
+            c.status === "used" &&
+            c.key.toLowerCase().includes(q)
+        )
+        .sort(
+          (a,b) =>
+            Number(a.order) -
+            Number(b.order)
+        );
+
+
+    /*
+     * UPDATE COUNTERS
+     */
+
+    $("activeCount").textContent =
+      codes.filter(
+        c => c.status === "active"
+      ).length;
+
+
+    $("usedCount").textContent =
+      codes.filter(
+        c => c.status === "used"
+      ).length;
+
+
+    $("activeLabel").textContent =
+      `${active.length} ${
+        active.length === 1
+          ? "code"
+          : "codes"
+      }`;
+
+
+    $("usedLabel").textContent =
+      `${used.length} ${
+        used.length === 1
+          ? "code"
+          : "codes"
+      }`;
+
+
+    /*
+     * ACTIVE LIST
+     */
+
+    $("activeList").innerHTML =
+      active.length
+        ? active.map(cardHTML).join("")
+        : `
+          <div class="empty">
+            No active codes.
+          </div>
+        `;
+
+
+    /*
+     * USED LIST
+     */
+
+    $("usedList").innerHTML =
+      used.length
+        ? used.map(cardHTML).join("")
+        : `
+          <div class="empty">
+            No used / expired codes.
+          </div>
+        `;
+
+  }
+
+
+
+  /*
+   * CODE CARD
+   */
+
+  function cardHTML(c){
+
+    const isActive =
+      c.status === "active";
+
+
+    return `
+
+      <div
+        class="code-card"
+        data-id="${c.id}"
+      >
+
+        <div class="code-main">
+
+          <div style="min-width:0">
+
+            <div
+              class="code-key"
+              data-action="menu"
+              title="Click for options"
+            >
+              ${escapeHTML(c.key)}
+            </div>
+
+            <div class="hint">
+              Click the code for options
+            </div>
+
+          </div>
+
+
+          <span
+            class="status ${
+              isActive
+                ? "active"
+                : "expired"
+            }"
+          >
+            ${
+              isActive
+                ? "● ACTIVE"
+                : "● EXPIRED"
+            }
+          </span>
+
+        </div>
+
+
+        <div class="meta">
+
+          <span>
+            Purchased:
+            ${displayDate(c.purchasedDate)}
+          </span>
+
+
+          ${
+            isActive
+
+              ?
+
+              `<span>
+                FIFO #${c.order}
+              </span>`
+
+              :
+
+              `<span>
+                Used:
+                ${displayDate(c.usedDate)}
+              </span>`
+          }
+
+        </div>
+
+
+        <div
+          class="menu ${
+            openMenuId === c.id
+              ? "show"
+              : ""
+          }"
+        >
+
+          ${
+            isActive
+
+              ?
+
+              `
+                <button data-action="copy">
+                  📋 Copy
+                </button>
+
+                <button data-action="used">
+                  ✅ Used
+                </button>
+              `
+
+              :
+
+              `
+                <button data-action="copy">
+                  📋 Copy
+                </button>
+
+                <button
+                  class="danger"
+                  data-action="delete"
+                >
+                  🗑 Delete
+                </button>
+              `
+          }
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+
+  /*
+   * ADD NEW CODE
+   */
+
+  function addCode(){
+
+    const key =
+      $("codeInput")
+        .value
+        .trim();
+
+
+    const purchasedDate =
+      $("buyDate").value ||
+      localDateString();
+
+
+    if(!key){
+
+      $("codeInput").focus();
+
+      return;
+
+    }
+
+
+    /*
+     * Find the highest FIFO number.
+     */
+
+    const maxOrder =
+      codes.reduce(
+        (max,c) =>
+          Math.max(
+            max,
+            Number(c.order) || 0
+          ),
+        0
+      );
+
+
+    const newCode = {
+
+      id:
+        crypto.randomUUID
+          ? crypto.randomUUID()
+          : String(
+              Date.now() +
+              Math.random()
+            ),
+
+      key:
+
+        key,
+
+      purchasedDate:
+
+        purchasedDate,
+
+      status:
+
+        "active",
+
+      usedDate:
+
+        null,
+
+      order:
+
+        maxOrder + 1
+
+    };
+
+
+    /*
+     * New codes are added to
+     * the END of the FIFO queue.
+     */
+
+    codes.push(newCode);
+
+
+    save();
+
+    closeModal();
+
+    render();
+
+    showToast(
+      "Code added successfully."
+    );
+
+  }
+
+
+
+  /*
+   * COPY CODE
+   */
+
+  async function copyCode(id){
+
+    const c =
+      codes.find(
+        x => x.id === id
+      );
+
+
+    if(!c)
+      return;
+
+
+    try{
+
+      await navigator.clipboard.writeText(
+        c.key
+      );
+
+      showToast(
+        "Code copied!"
+      );
+
+    }catch(e){
+
+      /*
+       * Fallback for browsers that
+       * don't support Clipboard API.
+       */
+
+      const ta =
+        document.createElement(
+          "textarea"
+        );
+
+      ta.value =
+        c.key;
+
+      document.body.appendChild(
+        ta
+      );
+
+      ta.select();
+
+      document.execCommand(
+        "copy"
+      );
+
+      ta.remove();
+
+      showToast(
+        "Code copied!"
+      );
+
+    }
+
+
+    openMenuId = null;
+
+    render();
+
+  }
+
+
+
+  /*
+   * MARK AS USED
+   */
+
+  function markUsed(id){
+
+    const c =
+      codes.find(
+        x => x.id === id
+      );
+
+
+    if(
+      !c ||
+      c.status !== "active"
+    )
+      return;
+
+
+    /*
+     * Mark expired/used.
+     */
+
+    c.status =
+      "used";
+
+
+    /*
+     * Automatically record
+     * today's date.
+     */
+
+    c.usedDate =
+      localDateString();
+
+
+    openMenuId =
+      null;
+
+
+    save();
+
+    render();
+
+
+    showToast(
+      "Code marked as used."
+    );
+
+  }
+
+
+
+  /*
+   * DELETE USED CODE
+   */
+
+  function deleteCode(id){
+
+    const c =
+      codes.find(
+        x => x.id === id
+      );
+
+
+    if(!c)
+      return;
+
+
+    if(
+      confirm(
+        `Delete code "${c.key}"?`
+      )
+    ){
+
+      codes =
+        codes.filter(
+          x => x.id !== id
+        );
+
+
+      openMenuId =
+        null;
+
+
+      save();
+
+      render();
+
+    }
+
+  }
+
+
+
+  /*
+   * TOAST MESSAGE
+   */
+
+  function showToast(message){
+
+    let t =
+      document.getElementById(
+        "toast"
+      );
+
+
+    if(!t){
+
+      t =
+        document.createElement(
+          "div"
+        );
+
+      t.id =
+        "toast";
+
+
+      Object.assign(
+        t.style,
+        {
+          position:"fixed",
+          bottom:"22px",
+          left:"50%",
+          transform:"translateX(-50%)",
+          background:"#252c39",
+          color:"#fff",
+          padding:"11px 16px",
+          borderRadius:"10px",
+          border:"1px solid #3b4557",
+          fontSize:"13px",
+          fontWeight:"700",
+          zIndex:200
+        }
+      );
+
+
+      document.body.appendChild(t);
+
+    }
+
+
+    t.textContent =
+      message;
+
+    t.style.opacity =
+      "1";
+
+
+    clearTimeout(
+      t._timer
+    );
+
+
+    t._timer =
+      setTimeout(
+        () => {
+          t.style.opacity =
+            "0";
+        },
+        1600
+      );
+
+  }
+
+
+
+  /*
+   * OPEN ADD MODAL
+   */
+
+  function openModal(){
+
+    $("modalBackdrop")
+      .classList
+      .add("show");
+
+
+    /*
+     * Automatically select
+     * today's date.
+     */
+
+    $("buyDate").value =
+      localDateString();
+
+
+    $("codeInput").value =
+      "";
+
+
+    setTimeout(
+      () =>
+        $("codeInput").focus(),
+      50
+    );
+
+  }
+
+
+
+  /*
+   * CLOSE ADD MODAL
+   */
+
+  function closeModal(){
+
+    $("modalBackdrop")
+      .classList
+      .remove("show");
+
+  }
+
+
+
+  /*
+   * ADD BUTTON
+   */
+
+  $("openAdd")
+    .addEventListener(
+      "click",
+      openModal
+    );
+
+
+  /*
+   * CANCEL
+   */
+
+  $("cancelAdd")
+    .addEventListener(
+      "click",
+      closeModal
+    );
+
+
+  /*
+   * SAVE CODE
+   */
+
+  $("saveCode")
+    .addEventListener(
+      "click",
+      addCode
+    );
+
+
+  /*
+   * ENTER KEY = ADD
+   */
+
+  $("codeInput")
+    .addEventListener(
+      "keydown",
+      e => {
+
+        if(
+          e.key === "Enter"
+        ){
+
+          addCode();
+
+        }
+
+      }
+    );
+
+
+  /*
+   * CLICK OUTSIDE MODAL = CLOSE
+   */
+
+  $("modalBackdrop")
+    .addEventListener(
+      "click",
+      e => {
+
+        if(
+          e.target ===
+          $("modalBackdrop")
+        ){
+
+          closeModal();
+
+        }
+
+      }
+    );
+
+
+  /*
+   * SEARCH
+   */
+
+  $("search")
+    .addEventListener(
+      "input",
+      render
+    );
+
+
+  /*
+   * CLEAR SEARCH
+   */
+
+  $("clearSearch")
+    .addEventListener(
+      "click",
+      () => {
+
+        $("search").value =
+          "";
+
+        render();
+
+      }
+    );
+
+
+  /*
+   * GLOBAL CLICK HANDLER
+   */
+
+  document.addEventListener(
+    "click",
+    e => {
+
+      const card =
+        e.target.closest(
+          ".code-card"
+        );
+
+
+      /*
+       * Click outside cards:
+       * close open menu.
+       */
+
+      if(!card){
+
+        if(
+          openMenuId !== null
+        ){
+
+          openMenuId =
+            null;
+
+          render();
+
+        }
+
+        return;
+
+      }
+
+
+      const id =
+        card.dataset.id;
+
+
+      const actionElement =
+        e.target.closest(
+          "[data-action]"
+        );
+
+
+      const action =
+        actionElement
+          ?.dataset
+          .action;
+
+
+      /*
+       * CLICK CODE KEY
+       */
+
+      if(
+        action === "menu"
+      ){
+
+        openMenuId =
+          openMenuId === id
+            ? null
+            : id;
+
+        render();
+
+      }
+
+
+      /*
+       * COPY
+       */
+
+      else if(
+        action === "copy"
+      ){
+
+        copyCode(id);
+
+      }
+
+
+      /*
+       * USED
+       */
+
+      else if(
+        action === "used"
+      ){
+
+        markUsed(id);
+
+      }
+
+
+      /*
+       * DELETE
+       */
+
+      else if(
+        action === "delete"
+      ){
+
+        deleteCode(id);
+
+      }
+
+    }
+  );
+
+
+  /*
+   * INITIAL DISPLAY
+   */
+
+  render();
+
+})();
+
+</script>
+
+</body>
+</html>
